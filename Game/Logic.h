@@ -8,185 +8,173 @@
 
 const int INF = 1e9;
 
-class Logic
-{
-  public:
-    Logic(Board *board, Config *config) : board(board), config(config)
-    {
-        rand_eng = std::default_random_engine (
-            !((*config)("Bot", "NoRandom")) ? unsigned(time(0)) : 0);
-        scoring_mode = (*config)("Bot", "BotScoringType");
-        optimization = (*config)("Bot", "Optimization");
-    }
-
-    vector<move_pos> find_best_turns(const bool color)
-    {
+class Logic {
+public:
+    /**
+     * Находит лучшую последовательность ходов для заданного цвета
+     * @param color цвет игрока (true - белые, false - черные)
+     * @return вектор лучших ходов
+     */
+    vector<move_pos> find_best_turns(const bool color) {
         next_best_state.clear();
         next_move.clear();
 
+        // Начинаем поиск с корневой позиции
         find_first_best_turn(board->get_board(), color, -1, -1, 0);
 
-        int cur_state = 0;
-        vector<move_pos> res;
-        do
-        {
-            res.push_back(next_move[cur_state]);
-            cur_state = next_best_state[cur_state];
-        } while (cur_state != -1 && next_move[cur_state].x != -1);
-        return res;
+        // Собираем цепочку лучших ходов
+        vector<move_pos> result;
+        int current_state = 0;
+        while (current_state != -1 && next_move[current_state].x != -1) {
+            result.push_back(next_move[current_state]);
+            current_state = next_best_state[current_state];
+        }
+        return result;
     }
 
 private:
-    vector<vector<POS_T>> make_turn(vector<vector<POS_T>> mtx, move_pos turn) const
-    {
-        if (turn.xb != -1)
-            mtx[turn.xb][turn.yb] = 0;
-        if ((mtx[turn.x][turn.y] == 1 && turn.x2 == 0) || (mtx[turn.x][turn.y] == 2 && turn.x2 == 7))
-            mtx[turn.x][turn.y] += 2;
-        mtx[turn.x2][turn.y2] = mtx[turn.x][turn.y];
-        mtx[turn.x][turn.y] = 0;
-        return mtx;
-    }
-
-    double calc_score(const vector<vector<POS_T>> &mtx, const bool first_bot_color) const
-    {
-        // color - who is max player
-        double w = 0, wq = 0, b = 0, bq = 0;
-        for (POS_T i = 0; i < 8; ++i)
-        {
-            for (POS_T j = 0; j < 8; ++j)
-            {
-                w += (mtx[i][j] == 1);
-                wq += (mtx[i][j] == 3);
-                b += (mtx[i][j] == 2);
-                bq += (mtx[i][j] == 4);
-                if (scoring_mode == "NumberAndPotential")
-                {
-                    w += 0.05 * (mtx[i][j] == 1) * (7 - i);
-                    b += 0.05 * (mtx[i][j] == 2) * (i);
-                }
-            }
-        }
-        if (!first_bot_color)
-        {
-            swap(b, w);
-            swap(bq, wq);
-        }
-        if (w + wq == 0)
-            return INF;
-        if (b + bq == 0)
-            return 0;
-        int q_coef = 4;
-        if (scoring_mode == "NumberAndPotential")
-        {
-            q_coef = 5;
-        }
-        return (b + bq * q_coef) / (w + wq * q_coef);
-    }
-
-    double find_first_best_turn(vector<vector<POS_T>> mtx, const bool color, const POS_T x, const POS_T y, size_t state,
-                                double alpha = -1)
-    {
+    /**
+     * Находит первый лучший ход (начало рекурсии)
+     * @param mtx текущее состояние доски
+     * @param color текущий игрок
+     * @param x,y координаты фигуры (если есть взятие)
+     * @param state текущее состояние
+     * @param alpha значение для альфа-бета отсечения
+     * @return оценка позиции
+     */
+    double find_first_best_turn(vector<vector<POS_T>> mtx, const bool color,
+        const POS_T x, const POS_T y, size_t state,
+        double alpha = -1) {
+        // Инициализация
         next_best_state.push_back(-1);
         next_move.emplace_back(-1, -1, -1, -1);
         double best_score = -1;
-        if (state != 0)
-            find_turns(x, y, mtx);
-        auto turns_now = turns;
-        bool have_beats_now = have_beats;
 
-        if (!have_beats_now && state != 0)
-        {
-            return find_best_turns_rec(mtx, 1 - color, 0, alpha);
+        // Поиск возможных ходов
+        if (state != 0) find_turns(x, y, mtx);
+        auto current_turns = turns;
+        bool has_captures = have_beats;
+
+        // Если нет взятий - переходим к обычному поиску
+        if (!has_captures && state != 0) {
+            return find_best_turns_rec(mtx, !color, 0, alpha);
         }
 
-        vector<move_pos> best_moves;
-        vector<int> best_states;
-
-        for (auto turn : turns_now)
-        {
+        // Перебор всех возможных ходов
+        for (auto& turn : current_turns) {
             size_t next_state = next_move.size();
             double score;
-            if (have_beats_now)
-            {
-                score = find_first_best_turn(make_turn(mtx, turn), color, turn.x2, turn.y2, next_state, best_score);
+
+            if (has_captures) {
+                score = find_first_best_turn(make_turn(mtx, turn), color,
+                    turn.x2, turn.y2, next_state, best_score);
             }
-            else
-            {
-                score = find_best_turns_rec(make_turn(mtx, turn), 1 - color, 0, best_score);
+            else {
+                score = find_best_turns_rec(make_turn(mtx, turn), !color, 0, best_score);
             }
-            if (score > best_score)
-            {
+
+            // Обновление лучшего хода
+            if (score > best_score) {
                 best_score = score;
-                next_best_state[state] = (have_beats_now ? int(next_state) : -1);
+                next_best_state[state] = has_captures ? next_state : -1;
                 next_move[state] = turn;
             }
         }
+
         return best_score;
     }
 
-    double find_best_turns_rec(vector<vector<POS_T>> mtx, const bool color, const size_t depth, double alpha = -1,
-                               double beta = INF + 1, const POS_T x = -1, const POS_T y = -1)
-    {
-        if (depth == Max_depth)
-        {
-            return calc_score(mtx, (depth % 2 == color));
-        }
-        if (x != -1)
-        {
-            find_turns(x, y, mtx);
-        }
-        else
-            find_turns(color, mtx);
-        auto turns_now = turns;
-        bool have_beats_now = have_beats;
-
-        if (!have_beats_now && x != -1)
-        {
-            return find_best_turns_rec(mtx, 1 - color, depth + 1, alpha, beta);
+    /**
+     * Рекурсивный поиск с альфа-бета отсечением
+     * @param mtx состояние доски
+     * @param color текущий игрок
+     * @param depth глубина рекурсии
+     * @param alpha,beta параметры отсечения
+     * @param x,y координаты фигуры (если есть взятие)
+     * @return оценка позиции
+     */
+    double find_best_turns_rec(vector<vector<POS_T>> mtx, const bool color,
+        const size_t depth, double alpha = -1,
+        double beta = INF + 1, const POS_T x = -1,
+        const POS_T y = -1) {
+        // Базовый случай - достигнута максимальная глубина
+        if (depth == Max_depth) {
+            return calc_score(mtx, depth % 2 == color);
         }
 
-        if (turns.empty())
-            return (depth % 2 ? 0 : INF);
+        // Поиск возможных ходов
+        if (x != -1) find_turns(x, y, mtx);
+        else find_turns(color, mtx);
 
+        auto current_turns = turns;
+        bool has_captures = have_beats;
+
+        // Обработка случая, когда нет взятий
+        if (!has_captures && x != -1) {
+            return find_best_turns_rec(mtx, !color, depth + 1, alpha, beta);
+        }
+
+        // Если нет ходов - терминальное состояние
+        if (turns.empty()) return (depth % 2 ? 0 : INF);
+
+        // Основной цикл оценки ходов
         double min_score = INF + 1;
         double max_score = -1;
-        for (auto turn : turns_now)
-        {
-            double score = 0.0;
-            if (!have_beats_now && x == -1)
-            {
-                score = find_best_turns_rec(make_turn(mtx, turn), 1 - color, depth + 1, alpha, beta);
+
+        for (auto& turn : current_turns) {
+            double score;
+
+            if (!has_captures && x == -1) {
+                score = find_best_turns_rec(make_turn(mtx, turn), !color,
+                    depth + 1, alpha, beta);
             }
-            else
-            {
-                score = find_best_turns_rec(make_turn(mtx, turn), color, depth, alpha, beta, turn.x2, turn.y2);
+            else {
+                score = find_best_turns_rec(make_turn(mtx, turn), color, depth,
+                    alpha, beta, turn.x2, turn.y2);
             }
+
+            // Обновление оценок
             min_score = min(min_score, score);
             max_score = max(max_score, score);
-            // alpha-beta pruning
-            if (depth % 2)
-                alpha = max(alpha, max_score);
-            else
-                beta = min(beta, min_score);
-            if (optimization != "O0" && alpha >= beta)
+
+            // Альфа-бета отсечение
+            if (depth % 2) alpha = max(alpha, max_score);
+            else beta = min(beta, min_score);
+
+            if (optimization != "O0" && alpha == beta) {
                 return (depth % 2 ? max_score + 1 : min_score - 1);
+            }
         }
+
         return (depth % 2 ? max_score : min_score);
     }
 
 public:
+ /*
+ Находит все возможные ходы для фигур указанного цвета
+ @param color цвет фигур, для которых ищутся ходы
+ */
     void find_turns(const bool color)
     {
         find_turns(color, board->get_board());
     }
 
+ /*
+ Находит все возможные ходы для фигуры в указанной позиции
+ @param x координата X фигуры
+ @param y координата Y фигуры
+ */
     void find_turns(const POS_T x, const POS_T y)
     {
         find_turns(x, y, board->get_board());
     }
 
 private:
+ /*
+  Находит все возможные ходы для фигур указанного цвета на заданной доске
+  @param color цвет фигур
+  @param mtx состояние доски
+ */
     void find_turns(const bool color, const vector<vector<POS_T>> &mtx)
     {
         vector<move_pos> res_turns;
@@ -215,6 +203,12 @@ private:
         have_beats = have_beats_before;
     }
 
+    /*
+      Находит все возможные ходы для фигуры в указанной позиции на заданной доске
+      @param x координата X фигуры
+      @param y координата Y фигуры
+      @param mtx состояние доски
+     */
     void find_turns(const POS_T x, const POS_T y, const vector<vector<POS_T>> &mtx)
     {
         turns.clear();
@@ -306,16 +300,26 @@ private:
     }
 
   public:
+    // Список возможных ходов
     vector<move_pos> turns;
+    // Флаг, указывающий есть ли взятия в списке ходов
     bool have_beats;
+    // Максимальная глубина рекурсии при поиске ходов
     int Max_depth;
 
   private:
+    // Генератор случайных чисел для перемешивания ходов
     default_random_engine rand_eng;
+    // Режим подсчета очков ("NumberAndPotential" или другой)
     string scoring_mode;
+    // Уровень оптимизации ("O0" или другой)
     string optimization;
+    // Список следующих лучших состояний для построения цепочки ходов
     vector<move_pos> next_move;
+    // Список индексов следующих лучших состояний
     vector<int> next_best_state;
+    // Указатель на объект доски
     Board *board;
+    // Указатель на объект конфигурации
     Config *config;
 };

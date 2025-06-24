@@ -1,19 +1,38 @@
 {
-  "WindowSize": { // Настройки размера окна приложения
-        "Width": 0,
-        "Hight": 0
-    },
-    "Bot": {
-        "IsWhiteBot": false,
-        "IsBlackBot": true,
-        "WhiteBotLevel": 0,
-        "BlackBotLevel": 5,
-        "BotScoringType": "NumberAndPotential",
-        "BotDelayMS": 0,
-        "NoRandom": false,
-        "Optimization": "O1"
-    },
-    "Game": {
-        "MaxNumTurns": 120
-    }
+  "WindowSize": { 
+    "Width": 500,
+    "Hight": 500
+  },
+  "Bot": {
+    "IsWhiteBot": true,
+    "IsBlackBot": true,
+    "WhiteBotLevel": 5,
+    "BlackBotLevel": 5,
+    "BotScoringType": "NumberAndPotential",
+    "BotDelayMS": 100,
+    "NoRandom": false,
+    "Optimization": "O1"
+  },
+  "Game": {
+    "MaxNumTurns": 120
+  }
 }
+//{
+//  "WindowSize": { // Настройки размера окна приложения
+//    "Width": 0, // Ширина окна (0 — автоматический подбор)
+//    "Hight": 0 // Высота окна (0 — автоматический подбор, опечатка: должно быть "Height")
+//  },
+//  "Bot": { // Настройки ИИ (бота)
+//    "IsWhiteBot": false, // Если true, белыми фишками играет бот
+//    "IsBlackBot": true, // Если true, чёрными фишками играет бот
+//    "WhiteBotLevel": 0, // Уровень сложности бота за белых (0 — отключён)
+//    "BlackBotLevel": 5, // Уровень сложности бота за чёрных (1–5, где 5 — самый сложный)
+//    "BotScoringType": "NumberAndPotential", // Метод оценки ходов: "NumberAndPotential" (количество фишек + потенциал), "NumberOnly" (только фишки)
+//    "BotDelayMS": 0, // Искусственная задержка хода бота (в миллисекундах)
+//    "NoRandom": false, // Если true, бот не делает случайных ходов при равных оценках
+//    "Optimization": "O1" // Уровень оптимизации алгоритма ("O1" — быстрый, но менее точный; "O2" — точнее, но медленнее)
+//  },
+//  "Game": { // Настройки игрового процесса
+//    "MaxNumTurns": 120 // Максимальное количество ходов в игре (после этого игра завершится)
+//  }
+//}
