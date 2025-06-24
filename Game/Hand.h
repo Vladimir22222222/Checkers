@@ -5,7 +5,7 @@
 #include "../Models/Response.h"
 #include "Board.h"
 
-// methods for hands
+// Класс для обработки пользовательского ввода (мышь, окно)
 class Hand
 {
   public:

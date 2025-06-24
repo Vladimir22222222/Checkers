@@ -26,5 +26,5 @@ class Config
     }
 
   private:
-    json config;
+    json config; // Объект для хранения конфигурации в формате JSON
 };

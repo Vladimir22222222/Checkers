@@ -17,7 +17,7 @@ class Game
         fout.close();
     }
 
-    // to start checkers
+    // Основная функция игры
     int play()
     {
         auto start = chrono::steady_clock::now();
@@ -114,7 +114,7 @@ class Game
         auto turns = logic.find_best_turns(color);
         th.join();
         bool is_first = true;
-        // making moves
+        // Выполнение найденных ходов
         for (auto turn : turns)
         {
             if (!is_first)
@@ -134,7 +134,7 @@ class Game
 
     Response player_turn(const bool color)
     {
-        // return 1 if quit
+        // Подсветка возможных начальных позиций
         vector<pair<POS_T, POS_T>> cells;
         for (auto turn : logic.turns)
         {
@@ -143,7 +143,7 @@ class Game
         board.highlight_cells(cells);
         move_pos pos = {-1, -1, -1, -1};
         POS_T x = -1, y = -1;
-        // trying to make first move
+        // Выбор начальной позиции фигуры
         while (true)
         {
             auto resp = hand.get_cell();
@@ -198,7 +198,7 @@ class Game
         board.move_piece(pos, pos.xb != -1);
         if (pos.xb == -1)
             return Response::OK;
-        // continue beating while can
+        // Обработка серии взятий
         beat_series = 1;
         while (true)
         {
@@ -213,7 +213,7 @@ class Game
             }
             board.highlight_cells(cells);
             board.set_active(pos.x2, pos.y2);
-            // trying to make move
+            // Выбор продолжения хода
             while (true)
             {
                 auto resp = hand.get_cell();
@@ -246,10 +246,10 @@ class Game
     }
 
   private:
-    Config config;
-    Board board;
-    Hand hand;
-    Logic logic;
-    int beat_series;
-    bool is_replay = false;
+      Config config;       // Конфигурация игры
+      Board board;         // Игровая доска
+      Hand hand;           // Обработчик ввода
+      Logic logic;         // Игровая логика
+      int beat_series;     // Счетчик серии взятий
+      bool is_replay = false; // Флаг режима повтора игры
 };

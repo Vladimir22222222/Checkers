@@ -1,5 +1,5 @@
 {
-    "WindowSize": {
+  "WindowSize": { // Настройки размера окна приложения
         "Width": 0,
         "Hight": 0
     },
